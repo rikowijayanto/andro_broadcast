@@ -6,21 +6,45 @@ import androidx.core.app.ActivityCompat;
 
 import android.Manifest;
 import android.app.Activity;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.pm.PackageManager;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.View;
 import android.widget.Button;
 import android.widget.Toast;
 
-public class MainActivity extends AppCompatActivity implements View.OnClickListener {
+public class MainActivity<downloadReceiver> extends AppCompatActivity implements View.OnClickListener {
+
+    public static final String ACTION_DOWNLOAD_STATUS = "download_status";
+
+
+    private BroadcastReceiver downloadReceiver;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+
+        downloadReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context context, Intent intent) {
+                Log.d(DownloadService.TAG, "Download Selesai");
+                Toast.makeText(context, "Download Selesai", Toast.LENGTH_SHORT).show();
+            }
+        };
+        IntentFilter downloadIntentFilter = new IntentFilter(ACTION_DOWNLOAD_STATUS);
+        registerReceiver(downloadReceiver, downloadIntentFilter);
+
         Button btnCheckPermission = findViewById(R.id.btn_permission);
         btnCheckPermission.setOnClickListener(this);
+
+        Button btnDownload = findViewById(R.id.btn_download);
+        btnDownload.setOnClickListener(this);
     }
 
     public static class PermissionManager {
@@ -38,9 +62,22 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if (view.getId() == R.id.btn_permission) {
             PermissionManager.check(this, Manifest.permission.RECEIVE_SMS, SMS_REQUEST_CODE);
 
+        } else if (view.getId() == R.id.btn_download) {
+            Intent downloadServiceIntent = new Intent(this, DownloadService.class);
+            startService(downloadServiceIntent);
+
         }
 
     }
+
+
+        @Override
+        protected void onDestroy() {
+            super.onDestroy();
+            if (downloadReceiver != null) {
+                unregisterReceiver(downloadReceiver);
+            }
+        }
 
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
